@@ -1,0 +1,4 @@
+# file: /mnt/c/Users/f9317/toolbox/genai/elf-names/src/bedrock_client.py
+# hypothesis_version: 6.148.7
+
+[0.7, 0.9, 100, 'Code', 'Error', 'Message', 'ThrottlingException', 'Unknown', 'ValidationException', 'application/json', 'bedrock-runtime', 'body', 'content', 'embedding', 'inferenceConfig', 'inputText', 'max_new_tokens', 'message', 'messages', 'output', 'role', 'seed', 'temperature', 'text', 'top_p', 'us-east-1', 'user']
