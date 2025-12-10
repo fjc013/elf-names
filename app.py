@@ -116,6 +116,17 @@ def apply_festive_theme():
         border: 2px solid var(--christmas-green);
         border-radius: 15px;
         padding: 20px;
+        color: var(--christmas-green) !important;
+    }
+    
+    /* Success message text color - multiple selectors for better targeting */
+    .stSuccess div,
+    .stSuccess div[data-testid="stMarkdownContainer"],
+    .stSuccess div[data-testid="stMarkdownContainer"] p,
+    .stSuccess [data-testid="stMarkdownContainer"] p,
+    .stAlert[kind="success"] div,
+    .stAlert[kind="success"] p {
+        color: var(--christmas-green) !important;
     }
     
     /* Error box styling */
@@ -256,8 +267,22 @@ def display_elf_name(name: str):
         unsafe_allow_html=True
     )
     
-    # Add a festive message
-    st.success("🎁 Your elf name has been magically generated! Share it with your friends and family!")
+    # Add a festive message with custom styling
+    success_html = f"""
+    <div style="
+        background-color: rgba(22, 91, 51, 0.1);
+        border: 2px solid #165B33;
+        border-radius: 15px;
+        padding: 20px;
+        margin: 20px 0;
+        color: #165B33;
+        font-weight: 500;
+        text-align: center;
+    ">
+        🎁 Your elf name has been magically generated! Share it with your friends and family!
+    </div>
+    """
+    st.markdown(success_html, unsafe_allow_html=True)
     
     # Add option to generate another name
     st.markdown("---")
@@ -357,8 +382,22 @@ def main():
     if st.session_state.generated_name:
         display_elf_name(st.session_state.generated_name)
     else:
-        # Show welcome message
-        st.info("🎁 Enter your information below to generate your unique elf name!")
+        # Show welcome message with custom styling
+        info_html = f"""
+        <div style="
+            background-color: rgba(22, 91, 51, 0.1);
+            border: 2px solid #165B33;
+            border-left: 5px solid #165B33;
+            border-radius: 10px;
+            padding: 15px 20px;
+            margin: 20px 0;
+            color: #165B33;
+            font-weight: 500;
+        ">
+            🎁 Enter your information below to generate your unique elf name!
+        </div>
+        """
+        st.markdown(info_html, unsafe_allow_html=True)
         
         # Render input form and handle submission
         first_name, birth_month, submit_clicked = render_input_form()
