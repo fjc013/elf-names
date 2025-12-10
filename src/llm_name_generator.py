@@ -25,11 +25,12 @@ class LLMNameGenerator:
         """
         self.bedrock_client = bedrock_client
     
-    def _build_prompt(self, seed: str, style_hints: Dict[str, str]) -> str:
+    def _build_prompt(self, first_name: str, birth_month: str, style_hints: Dict[str, str]) -> str:
         """
         Constructs prompt with constraints and style guidance.
         
         The prompt includes:
+        - User's name and month for personalization and reproducibility
         - Christmas theme constraints
         - Style hints from embeddings
         - 2-3 word format requirement
@@ -37,19 +38,20 @@ class LLMNameGenerator:
         - Safety constraints (no political, religious, body parts, suggestive content)
         
         Args:
-            seed: Deterministic seed for reproducibility
+            first_name: User's first name for personalization
+            birth_month: User's birth month for seasonal context
             style_hints: Dictionary with adjective_style, noun_style, and twist keys
         
         Returns:
             str: Complete prompt for LLM
         
-        Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.4, 3.5
+        Requirements: 2.1, 2.2, 2.3, 2.4, 3.1, 3.2, 3.4, 3.5, 4.1, 4.2, 4.3
         """
         adjective_style = style_hints.get('adjective_style', 'cheerful')
         noun_style = style_hints.get('noun_style', 'winter object')
         twist = style_hints.get('twist', 'add sparkle')
         
-        prompt = f"""Generate a whimsical Christmas elf name following these requirements:
+        prompt = f"""Generate a whimsical Christmas elf name for someone named {first_name} born in {birth_month}. Follow these requirements:
 
 FORMAT:
 - The name must be exactly 2 or 3 words
@@ -82,17 +84,22 @@ EXAMPLES:
 - Cozy Candlelight
 - Merry Mittens
 
+PERSONALIZATION:
+- Consider the name {first_name} and birth month {birth_month} for inspiration
+- The same name and month should always produce the same elf name
+
 Generate ONE elf name that meets all requirements above. Return ONLY the name, nothing else."""
         
         return prompt
     
-    def generate_name(self, seed: str, style_hints: Dict[str, str], max_retries: int = 2) -> str:
+    def generate_name(self, first_name: str, birth_month: str, style_hints: Dict[str, str], max_retries: int = 2) -> str:
         """
-        Generates elf name using seed for reproducibility and style hints for variation.
+        Generates elf name using user context for reproducibility and style hints for variation.
         Implements retry logic for empty or malformed responses.
         
         Args:
-            seed: Deterministic seed (8-character hex string)
+            first_name: User's first name for personalization and reproducibility
+            birth_month: User's birth month for seasonal context and reproducibility
             style_hints: Dictionary with adjective_style, noun_style, and twist keys
             max_retries: Maximum number of retry attempts for empty/malformed responses
         
@@ -102,17 +109,17 @@ Generate ONE elf name that meets all requirements above. Return ONLY the name, n
         Raises:
             NameGenerationError: If unable to generate valid name after retries
         
-        Requirements: 1.4, 1.5, 3.1, 3.2, 3.4
+        Requirements: 1.4, 1.5, 3.1, 3.2, 3.4, 4.1, 4.2, 4.3
         """
         last_error = None
         
         for attempt in range(max_retries + 1):
             try:
                 # Build prompt with constraints and style guidance
-                prompt = self._build_prompt(seed, style_hints)
+                prompt = self._build_prompt(first_name, birth_month, style_hints)
                 
-                # Invoke Bedrock client with prompt and seed for reproducibility
-                response = self.bedrock_client.invoke_nova_lite(prompt, seed)
+                # Invoke Bedrock client with prompt for generation
+                response = self.bedrock_client.invoke_nova_lite(prompt)
                 
                 # Parse and clean the response
                 name = response.strip()

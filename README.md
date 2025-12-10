@@ -28,7 +28,42 @@ pip install -r requirements.txt
 
 The application requires AWS credentials to access Amazon Bedrock. You can configure credentials in one of the following ways:
 
-#### Option A: AWS CLI Configuration (Recommended)
+#### Option A: AWS Profile with Temporary Credentials (Recommended)
+
+If you use AWS profiles with temporary credentials (e.g., SSO, MFA, or assumed roles):
+
+1. Configure your AWS profile in `~/.aws/config`:
+
+```ini
+[profile your-profile-name]
+region = us-east-1
+# Additional profile configuration (SSO, role assumption, etc.)
+```
+
+2. Set the environment variable to use the profile:
+
+```bash
+export AWS_PROFILE=your-profile-name
+export AWS_DEFAULT_REGION=us-east-1
+```
+
+On Windows (Command Prompt):
+
+```cmd
+set AWS_PROFILE=your-profile-name
+set AWS_DEFAULT_REGION=us-east-1
+```
+
+On Windows (PowerShell):
+
+```powershell
+$env:AWS_PROFILE="your-profile-name"
+$env:AWS_DEFAULT_REGION="us-east-1"
+```
+
+The application will automatically request session tokens using the specified profile.
+
+#### Option B: AWS CLI Configuration
 
 Install the AWS CLI and run:
 
@@ -42,7 +77,7 @@ Enter your:
 - Default region (e.g., `us-east-1`)
 - Default output format (e.g., `json`)
 
-#### Option B: Environment Variables
+#### Option C: Environment Variables (Static Credentials)
 
 Set the following environment variables:
 
@@ -68,22 +103,40 @@ $env:AWS_SECRET_ACCESS_KEY="your_secret_access_key"
 $env:AWS_DEFAULT_REGION="us-east-1"
 ```
 
-#### Option C: AWS Credentials File
+#### Supported Environment Variables
 
-Create or edit `~/.aws/credentials`:
+- `AWS_PROFILE`: AWS profile name for session-based authentication with temporary credentials
+- `AWS_DEFAULT_REGION`: AWS region for Bedrock service (defaults to us-east-2 if not set)
+- `AWS_ACCESS_KEY_ID`: AWS access key (for static credentials)
+- `AWS_SECRET_ACCESS_KEY`: AWS secret key (for static credentials)
+- `AWS_SESSION_TOKEN`: Session token (for temporary credentials)
 
-```ini
-[default]
-aws_access_key_id = your_access_key_id
-aws_secret_access_key = your_secret_access_key
-```
+#### Using .env File (Optional)
 
-And `~/.aws/config`:
+You can create a `.env` file in the project root to store your environment variables:
 
-```ini
-[default]
-region = us-east-1
-```
+1. Copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. Edit `.env` and add your AWS configuration
+
+3. Load the environment variables before running the app:
+   
+   On Linux/Mac:
+   ```bash
+   export $(cat .env | xargs)
+   streamlit run app.py
+   ```
+   
+   On Windows (PowerShell):
+   ```powershell
+   Get-Content .env | ForEach-Object { if ($_ -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2]) } }
+   streamlit run app.py
+   ```
+
+Note: The `.env` file is ignored by git for security.
 
 ### 3. Verify Bedrock Access
 

@@ -6,6 +6,7 @@ import boto3
 from botocore.exceptions import ClientError, NoCredentialsError, PartialCredentialsError, EndpointConnectionError
 import json
 import time
+import os
 from typing import Optional
 from exceptions import BedrockAPIError
 
@@ -14,15 +15,26 @@ class BedrockClient:
     """
     Client for AWS Bedrock API interactions.
     Handles authentication, model invocation, and embedding generation.
+    
+    Supports environment variables:
+    - AWS_PROFILE: AWS profile name to use for authentication
+    - AWS_DEFAULT_REGION: AWS region for Bedrock service (defaults to us-east-1)
     """
     
-    # Model IDs for Bedrock services
+    # Model IDs for Bedrock services (using inference profiles for cross-region support)
     NOVA_LITE_MODEL_ID = "us.amazon.nova-lite-v1:0"
-    EMBEDDING_MODEL_ID = "amazon.titan-embed-text-v1"
+    EMBEDDING_MODEL_ID = "amazon.titan-embed-text-v2:0"
     
     def __init__(self):
         """
         Initialize Bedrock client with AWS authentication.
+        
+        Uses environment variables for configuration:
+        - AWS_PROFILE: Optional AWS profile name
+        - AWS_DEFAULT_REGION: Optional AWS region (defaults to us-east-1)
+        
+        Creates a session with temporary credentials if AWS_PROFILE is set,
+        otherwise uses default credential chain.
         
         Raises:
             BedrockAPIError: If AWS credentials are not found or authentication fails
@@ -30,11 +42,21 @@ class BedrockClient:
         Requirements: 5.1, 5.2, 5.4
         """
         try:
-            # Initialize boto3 client for Bedrock Runtime
-            self.bedrock_runtime = boto3.client(
-                service_name='bedrock-runtime',
-                region_name='us-east-1'
-            )
+            # Get configuration from environment variables
+            aws_profile = os.environ.get('AWS_PROFILE')
+            aws_region = os.environ.get('AWS_DEFAULT_REGION', 'us-east-2')
+            
+            # Create a session with profile if specified
+            if aws_profile:
+                # Use profile-based session for temporary credentials
+                session = boto3.Session(profile_name=aws_profile, region_name=aws_region)
+                self.bedrock_runtime = session.client(service_name='bedrock-runtime')
+            else:
+                # Use default credential chain
+                self.bedrock_runtime = boto3.client(
+                    service_name='bedrock-runtime',
+                    region_name=aws_region
+                )
             
         except NoCredentialsError as e:
             raise BedrockAPIError(
@@ -63,14 +85,13 @@ class BedrockClient:
                 f"Unexpected error initializing AI service: {str(e)}"
             ) from e
     
-    def invoke_nova_lite(self, prompt: str, seed: Optional[str] = None, max_retries: int = 3) -> str:
+    def invoke_nova_lite(self, prompt: str, max_retries: int = 3) -> str:
         """
         Invoke Nova 2 Lite model with the given prompt.
         Implements exponential backoff for rate limiting.
         
         Args:
             prompt: The prompt text to send to the model
-            seed: Optional seed for reproducible generation (hex string)
             max_retries: Maximum number of retry attempts for rate limiting
         
         Returns:
@@ -97,15 +118,6 @@ class BedrockClient:
                 "top_p": 0.9
             }
         }
-        
-        # Add seed if provided for reproducibility
-        if seed is not None:
-            # Convert hex seed to integer for API
-            try:
-                seed_int = int(seed, 16)
-                request_body["inferenceConfig"]["seed"] = seed_int
-            except ValueError:
-                raise ValueError(f"Invalid seed format: {seed}. Must be hexadecimal string.")
         
         # Retry loop with exponential backoff
         for attempt in range(max_retries):

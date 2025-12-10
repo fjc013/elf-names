@@ -332,7 +332,39 @@
     - Define list of pre-approved safe elf names for fallback
     - _Requirements: 2.6_
 
-- [x] 13. Final checkpoint - Ensure all tests pass
+- [x] 13. Fix AWS Bedrock seed compatibility issue
+
+
+  - [x] 13.1 Remove seed parameter from Nova Lite model calls
+
+
+    - Modify BedrockClient.invoke_nova_lite to not use seed parameter
+    - Update method signature to remove seed parameter
+    - Remove seed conversion logic that causes validation errors
+
+
+    - _Requirements: 5.1, 5.2_
+  - [ ] 13.2 Update LLMNameGenerator to use prompt-based reproducibility
+    - Modify generate_name method to not pass seed to Bedrock
+
+
+    - Incorporate user name and month directly into prompt for consistency
+    - Ensure deterministic prompt structure for reproducible results
+    - _Requirements: 4.1, 4.3_
+
+
+  - [ ] 13.3 Update NameGenerationPipeline to remove seed dependency
+    - Remove SeedGenerator usage from pipeline
+    - Update generate_elf_name to use prompt-based approach
+    - Maintain reproducibility through consistent prompt formatting
+    - _Requirements: 4.1, 4.2, 4.3_
+  - [ ] 13.4 Update tests to reflect seed removal
+    - Remove seed-related unit tests
+    - Update integration tests to verify prompt-based reproducibility
+    - Ensure all tests pass with new approach
+    - _Requirements: 4.1, 4.2, 4.3_
+
+- [x] 14. Final checkpoint - Ensure all tests pass
 
 
 

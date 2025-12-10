@@ -20,8 +20,9 @@ class TestBedrockClientInitialization:
     """Tests for BedrockClient initialization and authentication."""
     
     @patch('bedrock_client.boto3.client')
-    def test_successful_initialization(self, mock_boto_client):
-        """Test that BedrockClient initializes successfully with valid credentials."""
+    @patch.dict('os.environ', {}, clear=True)
+    def test_successful_initialization_default(self, mock_boto_client):
+        """Test that BedrockClient initializes successfully with default settings."""
         mock_client = Mock()
         mock_boto_client.return_value = mock_client
         
@@ -30,10 +31,44 @@ class TestBedrockClientInitialization:
         assert client.bedrock_runtime is not None
         mock_boto_client.assert_called_once_with(
             service_name='bedrock-runtime',
-            region_name='us-east-1'
+            region_name='us-east-2'
+        )
+    
+    @patch('bedrock_client.boto3.Session')
+    @patch.dict('os.environ', {'AWS_PROFILE': 'test-profile', 'AWS_DEFAULT_REGION': 'us-west-2'})
+    def test_initialization_with_profile(self, mock_session):
+        """Test that BedrockClient uses AWS_PROFILE for session-based authentication."""
+        mock_session_instance = Mock()
+        mock_client = Mock()
+        mock_session_instance.client.return_value = mock_client
+        mock_session.return_value = mock_session_instance
+        
+        client = BedrockClient()
+        
+        assert client.bedrock_runtime is not None
+        mock_session.assert_called_once_with(
+            profile_name='test-profile',
+            region_name='us-west-2'
+        )
+        mock_session_instance.client.assert_called_once_with(service_name='bedrock-runtime')
+    
+    @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {'AWS_DEFAULT_REGION': 'eu-west-1'}, clear=True)
+    def test_initialization_with_custom_region(self, mock_boto_client):
+        """Test that BedrockClient uses AWS_DEFAULT_REGION environment variable."""
+        mock_client = Mock()
+        mock_boto_client.return_value = mock_client
+        
+        client = BedrockClient()
+        
+        assert client.bedrock_runtime is not None
+        mock_boto_client.assert_called_once_with(
+            service_name='bedrock-runtime',
+            region_name='eu-west-1'
         )
     
     @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {}, clear=True)
     def test_no_credentials_error(self, mock_boto_client):
         """Test that BedrockAPIError is raised when AWS credentials are missing."""
         mock_boto_client.side_effect = NoCredentialsError()
@@ -42,6 +77,7 @@ class TestBedrockClientInitialization:
             BedrockClient()
     
     @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {}, clear=True)
     def test_partial_credentials_error(self, mock_boto_client):
         """Test that BedrockAPIError is raised when AWS credentials are incomplete."""
         mock_boto_client.side_effect = PartialCredentialsError(
@@ -56,6 +92,7 @@ class TestInvokeNovaLite:
     """Tests for invoke_nova_lite method."""
     
     @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {}, clear=True)
     def test_invoke_without_seed(self, mock_boto_client):
         """Test invoking Nova Lite without a seed."""
         mock_client = Mock()
@@ -83,8 +120,9 @@ class TestInvokeNovaLite:
         assert mock_client.invoke_model.called
     
     @patch('bedrock_client.boto3.client')
-    def test_invoke_with_seed(self, mock_boto_client):
-        """Test invoking Nova Lite with a seed for reproducibility."""
+    @patch.dict('os.environ', {}, clear=True)
+    def test_invoke_without_seed_parameter(self, mock_boto_client):
+        """Test invoking Nova Lite without seed parameter (new approach)."""
         mock_client = Mock()
         mock_boto_client.return_value = mock_client
         
@@ -104,28 +142,45 @@ class TestInvokeNovaLite:
         mock_client.invoke_model.return_value = mock_response
         
         client = BedrockClient()
-        result = client.invoke_nova_lite("Generate an elf name", seed="abc12345")
+        result = client.invoke_nova_lite("Generate an elf name")
         
         assert result == 'Jolly Tinsel'
         
-        # Verify seed was included in request
+        # Verify seed was NOT included in request
         call_args = mock_client.invoke_model.call_args
         request_body = json.loads(call_args[1]['body'])
-        assert 'seed' in request_body['inferenceConfig']
+        assert 'seed' not in request_body['inferenceConfig']
     
     @patch('bedrock_client.boto3.client')
-    def test_invalid_seed_format(self, mock_boto_client):
-        """Test that invalid seed format raises ValueError."""
+    @patch.dict('os.environ', {}, clear=True)
+    def test_invoke_with_max_retries(self, mock_boto_client):
+        """Test invoking Nova Lite with custom max_retries parameter."""
         mock_client = Mock()
         mock_boto_client.return_value = mock_client
         
-        client = BedrockClient()
+        # Mock successful response
+        mock_response = {
+            'body': MagicMock(),
+            'ResponseMetadata': {'HTTPStatusCode': 200}
+        }
+        response_body = {
+            'output': {
+                'message': {
+                    'content': [{'text': 'Sparkle Bell'}]
+                }
+            }
+        }
+        mock_response['body'].read.return_value = json.dumps(response_body).encode()
+        mock_client.invoke_model.return_value = mock_response
         
-        with pytest.raises(ValueError, match="Invalid seed format"):
-            client.invoke_nova_lite("Generate an elf name", seed="not-hex")
+        client = BedrockClient()
+        result = client.invoke_nova_lite("Generate an elf name", max_retries=5)
+        
+        assert result == 'Sparkle Bell'
     
     @patch('bedrock_client.boto3.client')
     @patch('bedrock_client.time.sleep')  # Mock sleep to speed up test
+    @patch.dict('os.environ', {}, clear=True)
     def test_throttling_exception(self, mock_sleep, mock_boto_client):
         """Test handling of API rate limiting with exponential backoff."""
         mock_client = Mock()
@@ -156,6 +211,7 @@ class TestGenerateEmbedding:
     """Tests for generate_embedding method."""
     
     @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {}, clear=True)
     def test_generate_embedding_success(self, mock_boto_client):
         """Test successful embedding generation."""
         mock_client = Mock()
@@ -180,6 +236,7 @@ class TestGenerateEmbedding:
         assert result == [0.1, 0.2, 0.3, -0.1, -0.2]
     
     @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {}, clear=True)
     def test_generate_embedding_unexpected_format(self, mock_boto_client):
         """Test handling of unexpected response format."""
         mock_client = Mock()
@@ -200,6 +257,7 @@ class TestGenerateEmbedding:
             client.generate_embedding("John December")
     
     @patch('bedrock_client.boto3.client')
+    @patch.dict('os.environ', {}, clear=True)
     def test_generate_embedding_access_denied(self, mock_boto_client):
         """Test handling of access denied errors."""
         mock_client = Mock()

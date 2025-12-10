@@ -67,19 +67,20 @@ class StreamlitUI:
         """Applies CSS styling for Christmas theme"""
 ```
 
-### 2. Seed Generator Component
+### 2. Prompt Generator Component
 
 **Responsibilities:**
-- Create deterministic hash from user input
-- Ensure reproducibility for same inputs
+- Create deterministic prompts from user input
+- Ensure reproducibility through consistent prompt structure
+- Incorporate user context directly into generation prompts
 
 **Interface:**
 ```python
-class SeedGenerator:
-    def generate_seed(first_name: str, birth_month: str) -> str:
+class PromptGenerator:
+    def generate_deterministic_prompt(first_name: str, birth_month: str, style_hints: dict) -> str:
         """
-        Creates 8-character seed from SHA-256 hash of name+month
-        Returns: Hexadecimal string of length 8
+        Creates consistent prompt incorporating name, month, and style hints
+        Returns: Formatted prompt string for LLM generation
         """
 ```
 

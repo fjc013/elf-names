@@ -2,7 +2,7 @@
 
 from typing import Tuple
 from bedrock_client import BedrockClient
-from seed_generator import SeedGenerator
+# Removed seed_generator import - using prompt-based reproducibility instead
 from embedding_generator import EmbeddingGenerator
 from llm_name_generator import LLMNameGenerator
 from safety_filter import SafetyFilter
@@ -37,7 +37,6 @@ class NameGenerationPipeline:
         self.bedrock_client = bedrock_client
         
         # Instantiate all component dependencies
-        self.seed_generator = SeedGenerator()
         self.embedding_generator = EmbeddingGenerator(bedrock_client)
         self.llm_name_generator = LLMNameGenerator(bedrock_client)
         self.safety_filter = SafetyFilter(bedrock_client)
@@ -48,11 +47,10 @@ class NameGenerationPipeline:
         
         Orchestrates the complete workflow:
         1. Validate user input
-        2. Generate deterministic seed from user input
-        3. Create semantic embedding and convert to style hints
-        4. Generate name using LLM with seed and style hints
-        5. Validate name through safety filter
-        6. Retry if unsafe, with fallback to safe name if needed
+        2. Create semantic embedding and convert to style hints
+        3. Generate name using LLM with user context and style hints
+        4. Validate name through safety filter
+        5. Retry if unsafe, with fallback to safe name if needed
         
         Args:
             first_name: User's first name
@@ -76,24 +74,22 @@ class NameGenerationPipeline:
             raise
         
         try:
-            # Step 2: Generate deterministic seed from user input
-            seed = self.seed_generator.generate_seed(first_name, birth_month)
-            
-            # Step 3: Create semantic embedding and convert to style hints
+            # Step 2: Create semantic embedding and convert to style hints
             # Combine first name and birth month for embedding
             embedding_text = f"{first_name} {birth_month}"
             embedding = self.embedding_generator.generate_embedding(embedding_text)
             style_hints = self.embedding_generator.embedding_to_style_hints(embedding)
             
-            # Step 4: Generate name using LLM with seed and style hints
-            generated_name = self.llm_name_generator.generate_name(seed, style_hints)
+            # Step 3: Generate name using LLM with user context and style hints
+            generated_name = self.llm_name_generator.generate_name(first_name, birth_month, style_hints)
             
-            # Step 5: Validate name through safety filter with retry logic
+            # Step 4: Validate name through safety filter with retry logic
             # Pass the generator function so safety filter can regenerate if needed
             is_safe, validated_name = self.safety_filter.validate_name(
                 name=generated_name,
                 generator_func=self.llm_name_generator.generate_name,
-                seed=seed,
+                first_name=first_name,
+                birth_month=birth_month,
                 style_hints=style_hints
             )
             

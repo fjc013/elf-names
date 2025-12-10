@@ -73,7 +73,7 @@ Do not provide any explanation, just the single word."""
 
         try:
             # Call Bedrock to evaluate name safety
-            response = self.bedrock_client.invoke_nova_lite(prompt, seed=None)
+            response = self.bedrock_client.invoke_nova_lite(prompt)
             
             # Parse response to determine if name is safe
             response_clean = response.strip().upper()
@@ -92,7 +92,7 @@ Do not provide any explanation, just the single word."""
             # This ensures we don't accidentally display inappropriate content
             return False
 
-    def validate_name(self, name: str, generator_func=None, seed: str = None, style_hints: dict = None, max_attempts: int = 3) -> Tuple[bool, str]:
+    def validate_name(self, name: str, generator_func=None, first_name: str = None, birth_month: str = None, style_hints: dict = None, max_attempts: int = 3) -> Tuple[bool, str]:
         """
         Validates name safety with retry logic and fallback.
         
@@ -101,8 +101,9 @@ Do not provide any explanation, just the single word."""
         
         Args:
             name: The elf name to validate
-            generator_func: Optional function to regenerate names (should accept seed and style_hints)
-            seed: Optional seed for regeneration
+            generator_func: Optional function to regenerate names (should accept first_name, birth_month, and style_hints)
+            first_name: User's first name for regeneration
+            birth_month: User's birth month for regeneration
             style_hints: Optional style hints for regeneration
             max_attempts: Maximum number of validation attempts (default: 3)
         
@@ -120,7 +121,7 @@ Do not provide any explanation, just the single word."""
             # If this is a retry and we have a generator function, regenerate
             if attempt > 0 and generator_func is not None:
                 try:
-                    current_name = generator_func(seed, style_hints)
+                    current_name = generator_func(first_name, birth_month, style_hints)
                 except Exception as e:
                     # If regeneration fails, continue to next attempt or fallback
                     # Log the error but don't fail completely
@@ -143,18 +144,20 @@ Do not provide any explanation, just the single word."""
                 return (True, current_name)
         
         # All attempts failed, use fallback safe name
-        # Select a fallback name deterministically based on seed if available
-        if seed:
+        # Select a fallback name deterministically based on user input if available
+        if first_name and birth_month:
             try:
-                # Use seed to select a consistent fallback
-                seed_int = int(seed, 16)
-                fallback_index = seed_int % len(FALLBACK_SAFE_NAMES)
+                # Use hash of user input to select a consistent fallback
+                import hashlib
+                combined_input = f"{first_name}{birth_month}"
+                hash_value = int(hashlib.sha256(combined_input.encode()).hexdigest()[:8], 16)
+                fallback_index = hash_value % len(FALLBACK_SAFE_NAMES)
                 fallback_name = FALLBACK_SAFE_NAMES[fallback_index]
-            except (ValueError, TypeError):
-                # If seed is invalid, use first fallback
+            except Exception:
+                # If hashing fails, use first fallback
                 fallback_name = FALLBACK_SAFE_NAMES[0]
         else:
-            # No seed provided, use first fallback
+            # No user input provided, use first fallback
             fallback_name = FALLBACK_SAFE_NAMES[0]
         
         # Return fallback with is_safe=False to indicate we had to use fallback

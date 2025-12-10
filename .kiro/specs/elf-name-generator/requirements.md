@@ -60,9 +60,9 @@ The Festive Christmas Holiday Elf Name Generator is a family-friendly web applic
 
 #### Acceptance Criteria
 
-1. WHEN the ElfNameGenerator receives user input THEN the system SHALL create a Seed by hashing the concatenation of first name and birth month
-2. WHEN the ElfNameGenerator creates a Seed THEN the system SHALL use SHA-256 hashing and extract the first 8 characters
-3. WHEN the ElfNameGenerator generates a name THEN the system SHALL use the Seed to guide the NovaLite model for reproducible output
+1. WHEN the ElfNameGenerator receives user input THEN the system SHALL create a deterministic prompt by incorporating the first name and birth month directly into the generation prompt
+2. WHEN the ElfNameGenerator creates a prompt THEN the system SHALL use the user's name and month as semantic context rather than numeric seeds
+3. WHEN the ElfNameGenerator generates a name THEN the system SHALL use consistent prompt structure to ensure reproducible output without relying on model seeds
 4. WHEN the ElfNameGenerator processes user input THEN the system SHALL create a SemanticEmbedding from the name and month
 5. WHEN the ElfNameGenerator uses SemanticEmbedding values THEN the system SHALL convert vector values into semantic instructions for name style variation
 6. WHEN SemanticEmbedding values are positive THEN the system SHALL use cheerful adjectives in name generation
