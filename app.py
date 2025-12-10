@@ -101,6 +101,15 @@ def apply_festive_theme():
         border-left: 5px solid var(--christmas-green);
     }
     
+    /* Info alert text color fix */
+    .stAlert[data-baseweb="notification"] {
+        color: var(--christmas-green) !important;
+    }
+    
+    .stAlert[data-baseweb="notification"] div {
+        color: var(--christmas-green) !important;
+    }
+    
     /* Success/result box styling */
     .stSuccess {
         background-color: rgba(22, 91, 51, 0.1);
@@ -253,6 +262,9 @@ def display_elf_name(name: str):
     # Add option to generate another name
     st.markdown("---")
     if st.button("🔄 Generate Another Name", use_container_width=True):
+        # Clear the generated name and error from session state
+        st.session_state.generated_name = None
+        st.session_state.generation_error = None
         st.rerun()
 
 
