@@ -118,4 +118,12 @@ Each of the above is:
 
 ## Technology
 
+Implement the application with the following tech stack
+
+- Python version > 3.8
+- Streamlit application framework
+- Large language models
+  - Amazon Nova 2 lite - name generation
+  - Amazon Titan v2 - text embeddings
+
 
